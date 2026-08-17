@@ -1,0 +1,59 @@
+name: Unzip DriveTV-fixed.zip and commit
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  unzip:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (use PAT for push)
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          token: ${{ secrets.PAT_PUSH }}
+
+      - name: Install utils
+        run: sudo apt-get update && sudo apt-get install -y unzip rsync
+
+      - name: Ensure zip exists
+        run: |
+          if [ ! -f DriveTV-fixed.zip ]; then
+            echo "No DriveTV-fixed.zip found — aborting."
+            exit 1
+          fi
+
+      - name: Unzip to temporary directory
+        run: |
+          rm -rf tmp_unzip
+          mkdir tmp_unzip
+          unzip -o DriveTV-fixed.zip -d tmp_unzip
+
+      - name: Copy files to repo root excluding workflows
+        run: |
+          # Copia todo excepto cualquier cosa en .github/workflows
+          rsync -av --exclude='.github/workflows/**' --exclude='.github/workflows' tmp_unzip/ .
+
+      - name: List newly copied files (debug)
+        run: git status --porcelain
+
+      - name: Commit unzipped files and remove zip, then push to main
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+        run: |
+          git config user.name "${GITHUB_ACTOR}"
+          git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+          git add -A
+          git rm --ignore-unmatch DriveTV-fixed.zip
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git commit -m "Unzip DriveTV-fixed.zip (excluding .github/workflows) and remove the zip"
+          git push origin HEAD:main
+
+      - name: Cleanup
+        run: rm -rf tmp_unzip
