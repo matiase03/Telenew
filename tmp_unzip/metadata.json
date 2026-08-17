@@ -1,0 +1,7 @@
+{
+  "name": "Drive TV",
+  "description": "Reproductor de videos de Google Drive para Android TV con soporte de 'Compartido conmigo', multicuenta y reproducción rápida optimizada.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
