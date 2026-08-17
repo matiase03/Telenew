@@ -1,0 +1,47 @@
+name: Unzip DriveTV-fixed.zip and commit
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  unzip:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (use PAT for push)
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          token: ${{ secrets.PAT_PUSH }}
+
+      - name: Ensure unzip is installed
+        run: sudo apt-get update && sudo apt-get install -y unzip
+
+      - name: Show zip contents (debug)
+        run: |
+          if [ ! -f DriveTV-fixed.zip ]; then
+            echo "No DriveTV-fixed.zip found — aborting."
+            exit 1
+          fi
+          echo "Listing DriveTV-fixed.zip (first 200 lines):"
+          unzip -l DriveTV-fixed.zip | sed -n '1,200p'
+
+      - name: Unzip archive to repo root
+        run: unzip -o DriveTV-fixed.zip -d .
+
+      - name: Commit unzipped files and remove zip, then push to main
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+        run: |
+          git config user.name "${GITHUB_ACTOR}"
+          git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+          git add -A
+          git rm --ignore-unmatch DriveTV-fixed.zip
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git commit -m "Unzip DriveTV-fixed.zip and remove the zip"
+          git push origin HEAD:main
